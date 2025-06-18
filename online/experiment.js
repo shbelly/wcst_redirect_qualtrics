@@ -51,8 +51,6 @@ const endTask = {
 };
 
 /*************** FUNCTIONS ***************/
-
-// Preload all target images from cards object
 function preloadImages() {
   targetImages = [];
   for (let i = 1; i < 65; i++) {
@@ -64,7 +62,6 @@ function preloadImages() {
   return targetImages;
 }
 
-// Add trial with card matching
 function addTrials(targetCard) {
   return {
     type: 'html-button-response',
@@ -134,7 +131,6 @@ function addTrials(targetCard) {
   };
 }
 
-// Add feedback after trial
 function addFeedback() {
   return {
     type: 'html-button-response',
@@ -156,7 +152,6 @@ function addFeedback() {
   };
 }
 
-// Combine trial + feedback if task not ended
 function addIfNoEnd(targetCard) {
   return {
     timeline: [addTrials(targetCard), addFeedback()],
@@ -164,18 +159,15 @@ function addIfNoEnd(targetCard) {
   };
 }
 
-// Helper to check if rule strings are restrictive (used for perseverative errors)
 function CheckRestricted(src, restricted) {
-  return !src.split("").some(ch => restricted.indexOf(ch) == -1);
+  return !src.split("").some(ch => restricted.indexOf(ch) === -1);
 }
 
-// Count number of unique categories completed
 function countCategories(trials) {
   let rules = trials.select('number_of_rule').values;
   return [...new Set(rules)].length;
 }
 
-// Get accuracy and RT stats per rule
 function getRuleStats(trials) {
   const ruleStats = {};
   for (let i = 1; i <= 3; i++) {
@@ -189,20 +181,14 @@ function getRuleStats(trials) {
 }
 
 /*************** TIMELINE ***************/
-
-// Start fullscreen, then show instructions
 timeline.push({ type: "fullscreen", fullscreen_mode: true }, instructions);
 
-// Loop through 64 trials
 for (let i = 1; i < 65; i++) {
   const targetCard = Object.values(cards).find(card => card.trialNumber === i);
   timeline.push(addIfNoEnd(targetCard));
 }
 
-// Add subjectId to data properties
 jsPsych.data.addProperties({ subject: subjectId });
-
-// End task and exit fullscreen
 timeline.push(endTask, { type: "fullscreen", fullscreen_mode: false });
 
 /*************** INITIALIZE ***************/
@@ -289,3 +275,4 @@ jsPsych.init({
     window.location.href = redirectURL;
   }
 });
+
