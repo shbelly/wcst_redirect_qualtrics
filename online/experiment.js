@@ -13,40 +13,6 @@ Github:https://github.com/vekteo/Wisconsin_JSPsych
 // Get subject ID from URL or default
 const subjectId = jsPsych.data.getURLVariable('wcst_subject_id') || 'no_id';
 
-// Language object for text strings
-const language = {
-  welcomePage: {
-    welcome: "Welcome!",
-    clickNext: "Click Next to continue.",
-  },
-  instruction: {
-    fourCards: "You'll see four cards...",
-    newCard: "Your goal is to match the card...",
-    clickCard: "Click on the card you think matches.",
-    rule: "Use trial-and-error to find the rule.",
-  },
-  instruction2: {
-    ruleChange: "The rule may change without warning.",
-    ruleChange2: "Try to figure it out again.",
-    clickNext: "Click Next to begin the task.",
-  },
-  feedback: {
-    correct: "Correct!",
-    wrong: "Wrong!",
-  },
-  task: {
-    instruction: "Which card does this one match?",
-  },
-  end: {
-    end: "Task Complete!",
-    thankYou: "Thanks for participating!",
-  },
-  button: {
-    next: "Next",
-    previous: "Previous",
-  }
-};
-
 // Variables for tracking performance & state
 let timeline = [];
 let counter = 1;               // Rule counter (starts from 1)
