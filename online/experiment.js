@@ -5,6 +5,7 @@ Lyon Neuroscience Research Center
 Universite Claude Bernard Lyon 1
 
 Github:https://github.com/vekteo/Wisconsin_JSPsych
+Modified for Qualtrics integration
 */
 
 /*************** VARIABLES ***************/
@@ -17,7 +18,14 @@ let counter = 0;
 let targetImages = [];
 let totalErrors = 0;
 let appliedRules = [];
-const subjectId = jsPsych.randomization.randomID(15)
+const subjectId = jsPsych.randomization.randomID(15)
+
+// Variables for Qualtrics data collection
+let perseverativeErrors = 0;
+let nonPerseverativeErrors = 0;
+let totalTrials = 0;
+let allReactionTimes = [];
+let categoriesCompleted = 0;
 
 /*************** TIMELINE ELEMENTS ***************/
 
@@ -41,7 +49,10 @@ const endTask = {
         },
     trial_duration: 3000,
     data: {test_part: "end"},
-    on_finish: function (trial) { statCalculation(trial) }
+    on_finish: function (trial) { 
+        statCalculation(trial);
+        sendDataToQualtrics(); // Send data to Qualtrics when experiment ends
+    }
 }  
 
 /*************** FUNCTIONS ***************/
@@ -66,6 +77,12 @@ function addTrials (targetCard) {
             return counter == 1;
             },
         on_finish: function(data){
+            // Increment total trials counter
+            totalTrials++;
+            
+            // Store reaction time for average calculation
+            allReactionTimes.push(data.rt);
+            
             let previousRule;
             if (actualRule == "color_rule") {
                 ruleToUse = targetCard.colorRule
@@ -97,9 +114,11 @@ function addTrials (targetCard) {
             if(parseInt(data.button_pressed) == previousRule) {
                 data.perseverative_error = 1;
                 data.non_perseverative_error = 0;
+                perseverativeErrors++; // Track for Qualtrics
             } else {
                 data.perseverative_error = 0;
                 data.non_perseverative_error = 1;
+                nonPerseverativeErrors++; // Track for Qualtrics
             }
           }
 
@@ -146,7 +165,73 @@ function addIfNoEnd(targetCard){
 
 function CheckRestricted(src, restricted) {
     return !src.split("").some(ch => restricted.indexOf(ch) == -1);
- }
+}
+
+// NEW FUNCTION: Send data to Qualtrics
+function sendDataToQualtrics() {
+    try {
+        // Calculate final statistics
+        const correctTrials = jsPsych.data.get().filter({is_trial: true, correct: true}).count();
+        const accuracy = totalTrials > 0 ? (correctTrials / totalTrials) * 100 : 0;
+        const avgRT = allReactionTimes.length > 0 ? 
+            Math.round(allReactionTimes.reduce((sum, rt) => sum + rt, 0) / allReactionTimes.length) : 0;
+        
+        // Categories completed is tracked by the counter variable
+        categoriesCompleted = counter;
+        
+        // Check if Qualtrics is available and send data
+        if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_subject_id', subjectId);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_accuracy', accuracy.toFixed(2));
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_avg_rt', avgRT);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_total_errors', totalErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_perseverative_errors', perseverativeErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_non_perseverative_errors', nonPerseverativeErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_categories_completed', categoriesCompleted);
+            Qualtrics.SurveyEngine.setEmbeddedData('wcst_total_trials', totalTrials);
+            
+            console.log('WCST data sent to Qualtrics:', {
+                subject_id: subjectId,
+                accuracy: accuracy.toFixed(2),
+                avg_rt: avgRT,
+                total_errors: totalErrors,
+                perseverative_errors: perseverativeErrors,
+                non_perseverative_errors: nonPerseverativeErrors,
+                categories_completed: categoriesCompleted,
+                total_trials: totalTrials
+            });
+            
+            // Optional: Show success message to participant
+            document.body.innerHTML += '<div style="position: fixed; top: 10px; right: 10px; background: green; color: white; padding: 10px; border-radius: 5px; z-index: 9999;">Data saved successfully!</div>';
+            
+        } else {
+            console.warn('Qualtrics not detected. WCST data logged to console:', {
+                subject_id: subjectId,
+                accuracy: accuracy.toFixed(2),
+                avg_rt: avgRT,
+                total_errors: totalErrors,
+                perseverative_errors: perseverativeErrors,
+                non_perseverative_errors: nonPerseverativeErrors,
+                categories_completed: categoriesCompleted,
+                total_trials: totalTrials
+            });
+            
+            // Store data in window object as backup
+            window.wcst_data = {
+                subject_id: subjectId,
+                accuracy: accuracy.toFixed(2),
+                avg_rt: avgRT,
+                total_errors: totalErrors,
+                perseverative_errors: perseverativeErrors,
+                non_perseverative_errors: nonPerseverativeErrors,
+                categories_completed: categoriesCompleted,
+                total_trials: totalTrials
+            };
+        }
+    } catch (error) {
+        console.error('Error sending WCST data to Qualtrics:', error);
+    }
+}
 
 /*************** TIMELINE ***************/
         
@@ -157,7 +242,7 @@ for (let i = 1; i < 65; i++) {
     timeline.push(addIfNoEnd(targetCard))
 }
 
-jsPsych.data.addProperties({subject: subjectId});
+jsPsych.data.addProperties({subject: subjectId});
 timeline.push(endTask, {type: "fullscreen", fullscreen_mode: false})
 
 /*************** EXPERIMENT START AND DATA UPDATE ***************/
@@ -166,6 +251,8 @@ jsPsych.init({
 timeline: timeline,
 preload_images: preloadImages(),
 on_close: function() {
+    // Send data to Qualtrics even if experiment is closed early
+    sendDataToQualtrics();
     jsPsych.data.get().localSave('csv',`WCST_subject_${subjectId}_quitted_output.csv`); 
 },
 on_data_update: function () {
