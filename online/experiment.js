@@ -7,10 +7,8 @@ Universite Claude Bernard Lyon 1
 Github:https://github.com/vekteo/Wisconsin_JSPsych
 */
 
-/*************** TASK CONFIG ***************/
-/*************** TASK CONFIG ***************/
+/*************** VARIABLES ***************/
 
-// Get subject ID from URL or default
 let timeline = [];
 const rules = ["color_rule", "shape_rule", "number_rule", "color_rule", "shape_rule", "number_rule", "color_rule"];
 let actualRule = rules[0]
