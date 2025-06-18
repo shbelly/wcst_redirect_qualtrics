@@ -17,17 +17,17 @@
   <link href="../static/js/jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css" />
   <link href="../static/css/style.css" rel="stylesheet" type="text/css" />
 
-  <!-- Load shared logic -->
+  <!-- Load shared logic BEFORE experiment -->
   <script src="../shared/languages.js"></script>
   <script src="../shared/parameters.js"></script>
   <script src="../shared/statCalculation.js"></script>
   <script src="../shared/cards.js"></script>
 </head>
 <body>
-  <!-- Target container for jsPsych rendering -->
+  <!-- Container where jsPsych will render content -->
   <div id="jspsych-target"></div>
 
-  <!-- Start the experiment -->
+  <!-- Load and start experiment -->
   <script src="experiment.js"></script>
 </body>
 </html>
