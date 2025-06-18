@@ -14,8 +14,86 @@
         <script src="../shared/cards.js"></script>
         <link href="../static/js/jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"/>
         <link href="../static/css/style.css" rel="stylesheet" type="text/css"/>
+        
+        <!-- Qualtrics Integration Script -->
+        <script>
+            // Function to check if we're running in Qualtrics
+            function isRunningInQualtrics() {
+                return typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine;
+            }
+            
+            // Function to handle experiment completion in Qualtrics
+            function completeQualtricsExperiment() {
+                if (isRunningInQualtrics()) {
+                    // Small delay to ensure data is sent before proceeding
+                    setTimeout(function() {
+                        // This will advance to the next question in Qualtrics
+                        try {
+                            Qualtrics.SurveyEngine.clickNextButton();
+                        } catch (e) {
+                            console.log('Could not automatically advance Qualtrics survey');
+                        }
+                    }, 1000);
+                }
+            }
+            
+            // Override the default jsPsych completion to handle Qualtrics
+            window.addEventListener('load', function() {
+                if (isRunningInQualtrics()) {
+                    console.log('WCST experiment loaded in Qualtrics environment');
+                    
+                    // Hide Qualtrics navigation buttons during experiment
+                    try {
+                        document.getElementById('NextButton').style.display = 'none';
+                        document.getElementById('PreviousButton').style.display = 'none';
+                    } catch (e) {
+                        // Buttons might not exist yet
+                    }
+                }
+            });
+            
+            // Global function to be called when experiment completes
+            window.onWCSTComplete = function() {
+                console.log('WCST experiment completed');
+                if (isRunningInQualtrics()) {
+                    // Show Qualtrics navigation buttons again
+                    try {
+                        document.getElementById('NextButton').style.display = '';
+                        document.getElementById('PreviousButton').style.display = '';
+                    } catch (e) {
+                        // Buttons might not exist
+                    }
+                    
+                    // Auto-advance or show completion message
+                    completeQualtricsExperiment();
+                } else {
+                    // Not in Qualtrics, show completion message
+                    alert('Experiment completed! Data has been saved.');
+                }
+            };
+        </script>
     </head>
     <body>
+        <div id="qualtrics-status" style="display: none; position: fixed; top: 0; left: 0; background: #007ACC; color: white; padding: 5px 10px; font-size: 12px; z-index: 10000;">
+            Running in Qualtrics
+        </div>
+        
+        <script>
+            // Show Qualtrics status if running in Qualtrics
+            if (typeof Qualtrics !== 'undefined') {
+                document.getElementById('qualtrics-status').style.display = 'block';
+            }
+        </script>
+        
         <script src="experiment.js"></script>
+        
+        <script>
+            // Call completion function when experiment ends
+            window.addEventListener('beforeunload', function() {
+                if (typeof window.onWCSTComplete === 'function') {
+                    window.onWCSTComplete();
+                }
+            });
+        </script>
     </body>
 </html>
