@@ -328,7 +328,10 @@ on_data_update: function () {
         }
     },
            
-    on_finish: function() {       
-        jsPsych.data.get().localSave('csv',`WCST_subject_${subjectId}_output.csv`); 
-    },
-});
+on_finish: function() {       
+    sendDataToQualtrics(); // ✅ This sends the embedded data
+    if (typeof window.onWCSTComplete === 'function') {
+        window.onWCSTComplete(); // ✅ This triggers Qualtrics to move on
+    }
+    jsPsych.data.get().localSave('csv',`WCST_subject_${subjectId}_output.csv`);
+},
