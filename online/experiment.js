@@ -43,7 +43,6 @@ const endTask = {
     data: {test_part: "end"},
     on_finish: function (trial) { 
         statCalculation(trial);
-        sendDataToQualtrics();
     }
 };
 
