@@ -43,6 +43,7 @@ const endTask = {
     data: {test_part: "end"},
     on_finish: function (trial) { 
         statCalculation(trial);
+        sendDataToQualtrics();
     }
 };
 
@@ -97,59 +98,53 @@ function addTrials (targetCard) {
             return counter == 1;
             },
         on_finish: function(data){
-            // Increment total trials counter
             totalTrials++;
-            
-            // Store reaction time for average calculation
             allReactionTimes.push(data.rt);
-            
             let previousRule;
             if (actualRule == "color_rule") {
-                ruleToUse = targetCard.colorRule
+                ruleToUse = targetCard.colorRule;
                 if (counter !== 0){
-                     previousRule = targetCard.numberRule
+                     previousRule = targetCard.numberRule;
                  }                        
             } else if (actualRule == "shape_rule") {
-                ruleToUse = targetCard.shapeRule
-                previousRule = targetCard.colorRule
+                ruleToUse = targetCard.shapeRule;
+                previousRule = targetCard.colorRule;
             }
             else {
-                ruleToUse = targetCard.numberRule
-                previousRule = targetCard.shapeRule
+                ruleToUse = targetCard.numberRule;
+                previousRule = targetCard.shapeRule;
             }
 
             data.correct_card = ruleToUse;
-  
             data.number_of_rule = (counter%3)+1;
             data.category_completed = counter;
                 
-        if(parseInt(data.button_pressed) === ruleToUse){
-            data.correct = true;
-            numberOfCorrectResponses++
-            data.perseverative_error = 0;
-            data.non_perseverative_error = 0;
-        } else {
-            data.correct = false;
-            numberOfCorrectResponses = 0;
-            if(parseInt(data.button_pressed) == previousRule) {
-                data.perseverative_error = 1;
-                data.non_perseverative_error = 0;
-                perseverativeErrors++; // Track for Qualtrics
-            } else {
+            if(parseInt(data.button_pressed) === ruleToUse){
+                data.correct = true;
+                numberOfCorrectResponses++;
                 data.perseverative_error = 0;
-                data.non_perseverative_error = 1;
-                nonPerseverativeErrors++; // Track for Qualtrics
+                data.non_perseverative_error = 0;
+            } else {
+                data.correct = false;
+                numberOfCorrectResponses = 0;
+                if(parseInt(data.button_pressed) == previousRule) {
+                    data.perseverative_error = 1;
+                    data.non_perseverative_error = 0;
+                    perseverativeErrors++;
+                } else {
+                    data.perseverative_error = 0;
+                    data.non_perseverative_error = 1;
+                    nonPerseverativeErrors++;
+                }
             }
-          }
 
-        if (data.correct === true) {
-            data.correct_in_row = numberOfCorrectResponses;
-        } else {
-            data.correct_in_row = 0;
-            totalErrors++;
-        }
-        
-        data.total_errors = totalErrors;    
+            if (data.correct === true) {
+                data.correct_in_row = numberOfCorrectResponses;
+            } else {
+                data.correct_in_row = 0;
+                totalErrors++;
+            }
+            data.total_errors = totalErrors;    
         }          
     }
 }        
@@ -168,7 +163,7 @@ function addFeedback () {
             if(last_trial_correct){
                 return `<p class="choice feedback" style='color: green; font-size: 5vh'>${language.feedback.correct}</p>`;
             } else {
-                return `<p class="choice feedback" style='color: red; font-size: 5vh; '>${language.feedback.wrong}</p>`
+                return `<p class="choice feedback" style='color: red; font-size: 5vh;'>${language.feedback.wrong}</p>`;
             }
         }
     }
@@ -176,81 +171,15 @@ function addFeedback () {
 
 function addIfNoEnd(targetCard){
     return if_node = {
-    timeline: [addTrials(targetCard), addFeedback()],
-    conditional_function: function(){
-        return counter !== 7;
+        timeline: [addTrials(targetCard), addFeedback()],
+        conditional_function: function(){
+            return counter !== 7;
         }
     }
 }
 
 function CheckRestricted(src, restricted) {
     return !src.split("").some(ch => restricted.indexOf(ch) == -1);
-}
-
-// NEW FUNCTION: Send data to Qualtrics
-function sendDataToQualtrics() {
-    try {
-        // Calculate final statistics
-        const correctTrials = jsPsych.data.get().filter({is_trial: true, correct: true}).count();
-        const accuracy = totalTrials > 0 ? (correctTrials / totalTrials) * 100 : 0;
-        const avgRT = allReactionTimes.length > 0 ? 
-            Math.round(allReactionTimes.reduce((sum, rt) => sum + rt, 0) / allReactionTimes.length) : 0;
-        
-        // Categories completed is tracked by the counter variable
-        categoriesCompleted = counter;
-        
-        // Check if Qualtrics is available and send data
-        if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_subject_id', subjectId);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_accuracy', accuracy.toFixed(2));
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_avg_rt', avgRT);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_total_errors', totalErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_perseverative_errors', perseverativeErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_non_perseverative_errors', nonPerseverativeErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_categories_completed', categoriesCompleted);
-            Qualtrics.SurveyEngine.setEmbeddedData('wcst_total_trials', totalTrials);
-            
-            console.log('WCST data sent to Qualtrics:', {
-                subject_id: subjectId,
-                accuracy: accuracy.toFixed(2),
-                avg_rt: avgRT,
-                total_errors: totalErrors,
-                perseverative_errors: perseverativeErrors,
-                non_perseverative_errors: nonPerseverativeErrors,
-                categories_completed: categoriesCompleted,
-                total_trials: totalTrials
-            });
-            
-            // Optional: Show success message to participant
-            document.body.innerHTML += '<div style="position: fixed; top: 10px; right: 10px; background: green; color: white; padding: 10px; border-radius: 5px; z-index: 9999;">Data saved successfully!</div>';
-            
-        } else {
-            console.warn('Qualtrics not detected. WCST data logged to console:', {
-                subject_id: subjectId,
-                accuracy: accuracy.toFixed(2),
-                avg_rt: avgRT,
-                total_errors: totalErrors,
-                perseverative_errors: perseverativeErrors,
-                non_perseverative_errors: nonPerseverativeErrors,
-                categories_completed: categoriesCompleted,
-                total_trials: totalTrials
-            });
-            
-            // Store data in window object as backup
-            window.wcst_data = {
-                subject_id: subjectId,
-                accuracy: accuracy.toFixed(2),
-                avg_rt: avgRT,
-                total_errors: totalErrors,
-                perseverative_errors: perseverativeErrors,
-                non_perseverative_errors: nonPerseverativeErrors,
-                categories_completed: categoriesCompleted,
-                total_trials: totalTrials
-            };
-        }
-    } catch (error) {
-        console.error('Error sending WCST data to Qualtrics:', error);
-    }
 }
 
 /*************** TIMELINE ***************/
@@ -272,7 +201,6 @@ jsPsych.init({
     preload_images: preloadImages(),
     
     on_close: function() {
-        // Send data to Qualtrics even if experiment is closed early
         sendDataToQualtrics();
         jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_quitted_output.csv`);
     },
@@ -283,51 +211,33 @@ jsPsych.init({
             let nMinus2Trial = jsPsych.data.get().filter({is_trial: true}).last(2).values()[0];
             let nMinus3Trial = jsPsych.data.get().filter({is_trial: true}).last(3).values()[0];
 
-            // Failure to maintain set
             if (nMinus1Trial.trial_number > 1 && nMinus1Trial.correct === false && nMinus2Trial.correct_in_row > 4 && nMinus2Trial.correct_in_row !== 10) {
                 nMinus1Trial.failure_to_maintain = 1;
             } else {
                 nMinus1Trial.failure_to_maintain = 0;
             }
 
-            // Perseverative responses
-            if (nMinus1Trial.button_pressed == nMinus1Trial.color_rule) {
-                appliedRules.push("C");
-            }
-            if (nMinus1Trial.button_pressed == nMinus1Trial.shape_rule) {
-                appliedRules.push("S");
-            }
-            if (nMinus1Trial.button_pressed == nMinus1Trial.number_rule) {
-                appliedRules.push("N");
-            }
+            if (nMinus1Trial.button_pressed == nMinus1Trial.color_rule) appliedRules.push("C");
+            if (nMinus1Trial.button_pressed == nMinus1Trial.shape_rule) appliedRules.push("S");
+            if (nMinus1Trial.button_pressed == nMinus1Trial.number_rule) appliedRules.push("N");
 
             nMinus1Trial.applied_rules = appliedRules.join("");
             appliedRules = [];
 
             if (nMinus2Trial) {
                 let isSame = CheckRestricted(nMinus1Trial.applied_rules, nMinus2Trial.applied_rules) || CheckRestricted(nMinus2Trial.applied_rules, nMinus1Trial.applied_rules);
-                if (nMinus1Trial.correct === false && isSame === true) {
-                    nMinus1Trial.perseverative_response = 1;
-                } else {
-                    nMinus1Trial.perseverative_response = 0;
-                }
+                nMinus1Trial.perseverative_response = (nMinus1Trial.correct === false && isSame === true) ? 1 : 0;
             } else {
                 nMinus1Trial.perseverative_response = 0;
             }
 
-            // Conceptual level responses
             if (nMinus3Trial) {
-                if (nMinus1Trial.correct && nMinus2Trial.correct && nMinus3Trial.correct) {
-                    nMinus1Trial.conceptual_level_response = 1;
-                } else {
-                    nMinus1Trial.conceptual_level_response = 0;
-                }
+                nMinus1Trial.conceptual_level_response = (nMinus1Trial.correct && nMinus2Trial.correct && nMinus3Trial.correct) ? 1 : 0;
             } else {
                 nMinus1Trial.conceptual_level_response = 0;
             }
         }
 
-        // Change rules after 10 correct responses
         if (numberOfCorrectResponses == 10) {
             numberOfCorrectResponses = 0;
             counter++;
@@ -341,10 +251,11 @@ jsPsych.init({
         }
     },
 
-on_finish: function() {
-    if (typeof window.onWCSTComplete === 'function') {
-        window.onWCSTComplete();
+    on_finish: function() {
+        sendDataToQualtrics();
+        if (typeof window.onWCSTComplete === 'function') {
+            window.onWCSTComplete();
+        }
+        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
     }
-    jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
-}
 });
