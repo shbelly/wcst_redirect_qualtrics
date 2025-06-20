@@ -1,12 +1,4 @@
-/* 
-Created by Teodora Vekony (vekteo@gmail.com)
-MEMO Team (PI: Dezso Nemeth)
-Lyon Neuroscience Research Center
-Universite Claude Bernard Lyon 1
-
-Github:https://github.com/vekteo/Wisconsin_JSPsych
-Modified for Qualtrics integration
-*/
+// experiment.js — modified to redirect to Qualtrics with embedded data
 
 /*************** VARIABLES ***************/
 
@@ -18,9 +10,9 @@ let counter = 0;
 let targetImages = [];
 let totalErrors = 0;
 let appliedRules = [];
-const subjectId = jsPsych.randomization.randomID(15)
+const subjectId = jsPsych.randomization.randomID(15);
 
-// Variables for Qualtrics data collection
+// Variables for data collection
 let perseverativeErrors = 0;
 let nonPerseverativeErrors = 0;
 let totalTrials = 0;
@@ -40,20 +32,47 @@ const instructions = {
     data: {test_part: "instruction"},
     button_label_next: language.button.next,
     button_label_previous: language.button.previous
-}
+};
 
 const endTask = {
     type: "html-keyboard-response",
     stimulus: function() {
-        return `<h2>${language.end.end}</h2><br><p>${language.end.thankYou}</p>`
-        },
+        return `<h2>${language.end.end}</h2><br><p>${language.end.thankYou}</p>`;
+    },
     trial_duration: 3000,
     data: {test_part: "end"},
     on_finish: function (trial) { 
         statCalculation(trial);
-        sendDataToQualtrics(); // Send data to Qualtrics when experiment ends
+        sendDataToQualtrics();
     }
-}  
+};
+
+/*************** REDIRECT METHOD ***************/
+
+function sendDataToQualtrics() {
+    try {
+        const correctTrials = jsPsych.data.get().filter({is_trial: true, correct: true}).count();
+        const accuracy = totalTrials > 0 ? (correctTrials / totalTrials) * 100 : 0;
+        const avgRT = allReactionTimes.length > 0 ?
+            Math.round(allReactionTimes.reduce((sum, rt) => sum + rt, 0) / allReactionTimes.length) : 0;
+        categoriesCompleted = counter;
+
+        const redirectUrl = new URL("https://YOURQUALTRICSDOMAIN.qualtrics.com/jfe/form/YOURSURVEYID");
+        redirectUrl.searchParams.set("wcst_subject_id", subjectId);
+        redirectUrl.searchParams.set("wcst_accuracy", accuracy.toFixed(2));
+        redirectUrl.searchParams.set("wcst_avg_rt", avgRT);
+        redirectUrl.searchParams.set("wcst_total_errors", totalErrors);
+        redirectUrl.searchParams.set("wcst_perseverative_errors", perseverativeErrors);
+        redirectUrl.searchParams.set("wcst_non_perseverative_errors", nonPerseverativeErrors);
+        redirectUrl.searchParams.set("wcst_categories_completed", categoriesCompleted);
+        redirectUrl.searchParams.set("wcst_total_trials", totalTrials);
+
+        window.location.href = redirectUrl.toString();
+
+    } catch (error) {
+        console.error("Redirect error:", error);
+    }
+} 
 
 /*************** FUNCTIONS ***************/
               
