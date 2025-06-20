@@ -57,7 +57,7 @@ function sendDataToQualtrics() {
             Math.round(allReactionTimes.reduce((sum, rt) => sum + rt, 0) / allReactionTimes.length) : 0;
         categoriesCompleted = counter;
 
-        const redirectUrl = new URL("https://YOURQUALTRICSDOMAIN.qualtrics.com/jfe/form/YOURSURVEYID");
+        const redirectUrl = new URL("https://oregon.qualtrics.com/jfe/form/SV_3pAnL2TwkoIaofk");
         redirectUrl.searchParams.set("wcst_subject_id", subjectId);
         redirectUrl.searchParams.set("wcst_accuracy", accuracy.toFixed(2));
         redirectUrl.searchParams.set("wcst_avg_rt", avgRT);
