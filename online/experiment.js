@@ -66,6 +66,8 @@ function sendDataToQualtrics() {
         redirectUrl.searchParams.set("wcst_categories_completed", categoriesCompleted);
         redirectUrl.searchParams.set("wcst_total_trials", totalTrials);
 
+        console.log("Redirecting to Qualtrics with URL:", redirectUrl.toString());
+
         window.location.href = redirectUrl.toString();
 
     } catch (error) {
