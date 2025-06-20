@@ -248,90 +248,84 @@ timeline.push(endTask, {type: "fullscreen", fullscreen_mode: false})
 /*************** EXPERIMENT START AND DATA UPDATE ***************/
 
 jsPsych.init({
-timeline: timeline,
-preload_images: preloadImages(),
-on_close: function() {
-    // Send data to Qualtrics even if experiment is closed early
-    sendDataToQualtrics();
-    jsPsych.data.get().localSave('csv',`WCST_subject_${subjectId}_quitted_output.csv`); 
-},
-on_data_update: function () {
+    timeline: timeline,
+    preload_images: preloadImages(),
+    
+    on_close: function() {
+        // Send data to Qualtrics even if experiment is closed early
+        sendDataToQualtrics();
+        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_quitted_output.csv`);
+    },
 
-    if (jsPsych.data.get().last(1).values()[0].is_trial === true) {
-        let nMinus1Trial = jsPsych.data.get().filter({is_trial: true}).last(1).values()[0]
-        let nMinus2Trial = jsPsych.data.get().filter({is_trial: true}).last(2).values()[0]
-        let nMinus3Trial = jsPsych.data.get().filter({is_trial: true}).last(3).values()[0]
+    on_data_update: function () {
+        if (jsPsych.data.get().last(1).values()[0].is_trial === true) {
+            let nMinus1Trial = jsPsych.data.get().filter({is_trial: true}).last(1).values()[0];
+            let nMinus2Trial = jsPsych.data.get().filter({is_trial: true}).last(2).values()[0];
+            let nMinus3Trial = jsPsych.data.get().filter({is_trial: true}).last(3).values()[0];
 
-        //failure to maintain set
+            // Failure to maintain set
+            if (nMinus1Trial.trial_number > 1 && nMinus1Trial.correct === false && nMinus2Trial.correct_in_row > 4 && nMinus2Trial.correct_in_row !== 10) {
+                nMinus1Trial.failure_to_maintain = 1;
+            } else {
+                nMinus1Trial.failure_to_maintain = 0;
+            }
 
-        if (nMinus1Trial.trial_number > 1 && nMinus1Trial.correct === false && nMinus2Trial.correct_in_row > 4 && nMinus2Trial.correct_in_row !== 10) {
-            nMinus1Trial.failure_to_maintain = 1;
-         } else {
-             nMinus1Trial.failure_to_maintain = 0;
-         }
+            // Perseverative responses
+            if (nMinus1Trial.button_pressed == nMinus1Trial.color_rule) {
+                appliedRules.push("C");
+            }
+            if (nMinus1Trial.button_pressed == nMinus1Trial.shape_rule) {
+                appliedRules.push("S");
+            }
+            if (nMinus1Trial.button_pressed == nMinus1Trial.number_rule) {
+                appliedRules.push("N");
+            }
 
-        // perseverative responses
+            nMinus1Trial.applied_rules = appliedRules.join("");
+            appliedRules = [];
 
-        if (nMinus1Trial.button_pressed == nMinus1Trial.color_rule) {
-            appliedRules.push("C");
-        }
-
-        if (nMinus1Trial.button_pressed == nMinus1Trial.shape_rule) {
-            appliedRules.push("S");
-        }
-
-        if (nMinus1Trial.button_pressed == nMinus1Trial.number_rule) {
-            appliedRules.push("N");
-        }        
-        
-        nMinus1Trial.applied_rules = appliedRules.join("");
-
-        appliedRules = [];
-        
-        if (nMinus2Trial) {
-            let isSame = CheckRestricted(nMinus1Trial.applied_rules, nMinus2Trial.applied_rules) || CheckRestricted(nMinus2Trial.applied_rules, nMinus1Trial.applied_rules)
-            if (nMinus1Trial.correct === false && isSame === true) {
-                nMinus1Trial.perseverative_response = 1;
+            if (nMinus2Trial) {
+                let isSame = CheckRestricted(nMinus1Trial.applied_rules, nMinus2Trial.applied_rules) || CheckRestricted(nMinus2Trial.applied_rules, nMinus1Trial.applied_rules);
+                if (nMinus1Trial.correct === false && isSame === true) {
+                    nMinus1Trial.perseverative_response = 1;
+                } else {
+                    nMinus1Trial.perseverative_response = 0;
+                }
             } else {
                 nMinus1Trial.perseverative_response = 0;
             }
-        } else {
-            nMinus1Trial.perseverative_response = 0;
-        }
 
-        // conceptual level responses
-
-        if (nMinus3Trial) {
-            if (nMinus1Trial.correct && nMinus2Trial.correct && nMinus3Trial.correct)
-                {
+            // Conceptual level responses
+            if (nMinus3Trial) {
+                if (nMinus1Trial.correct && nMinus2Trial.correct && nMinus3Trial.correct) {
                     nMinus1Trial.conceptual_level_response = 1;
                 } else {
                     nMinus1Trial.conceptual_level_response = 0;
                 }
-        } else {
-            nMinus1Trial.conceptual_level_response = 0;
+            } else {
+                nMinus1Trial.conceptual_level_response = 0;
+            }
         }
-    }
 
-        //change rules after 10 correct responses
-
+        // Change rules after 10 correct responses
         if (numberOfCorrectResponses == 10) {
             numberOfCorrectResponses = 0;
             counter++;
             actualRule = rules[counter];
         }
 
-        let interactionData = jsPsych.data.getInteractionData()
-        const interactionDataOfLastTrial = interactionData.filter({'trial': jsPsych.data.get().last(1).values()[0].trial_index}).values();
+        let interactionData = jsPsych.data.getInteractionData();
+        const interactionDataOfLastTrial = interactionData.filter({ 'trial': jsPsych.data.get().last(1).values()[0].trial_index }).values();
         if (interactionDataOfLastTrial) {
-            jsPsych.data.get().last(1).values()[0].browser_events = JSON.stringify(interactionDataOfLastTrial)
+            jsPsych.data.get().last(1).values()[0].browser_events = JSON.stringify(interactionDataOfLastTrial);
         }
     },
-           
-on_finish: function() {       
-    sendDataToQualtrics(); // ✅ This sends the embedded data
-    if (typeof window.onWCSTComplete === 'function') {
-        window.onWCSTComplete(); // ✅ This triggers Qualtrics to move on
+
+    on_finish: function() {
+        sendDataToQualtrics();
+        if (typeof window.onWCSTComplete === 'function') {
+            window.onWCSTComplete();
+        }
+        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
     }
-    jsPsych.data.get().localSave('csv',`WCST_subject_${subjectId}_output.csv`);
-},
+});
