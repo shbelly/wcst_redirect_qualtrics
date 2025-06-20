@@ -341,11 +341,10 @@ jsPsych.init({
         }
     },
 
-    on_finish: function() {
-        sendDataToQualtrics();
-        if (typeof window.onWCSTComplete === 'function') {
-            window.onWCSTComplete();
-        }
-        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
+on_finish: function() {
+    if (typeof window.onWCSTComplete === 'function') {
+        window.onWCSTComplete();
     }
+    jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
+}
 });
