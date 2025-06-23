@@ -69,7 +69,10 @@ function sendDataToQualtrics() {
 
         console.log("Redirecting to Qualtrics with URL:", redirectUrl.toString());
 
+    setTimeout(() => {
         window.location.href = redirectUrl.toString();
+    }, 300); // ~300ms buffer
+
 
     } catch (error) {
         console.error("Redirect error:", error);
