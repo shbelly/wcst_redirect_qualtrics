@@ -57,7 +57,29 @@ function sendDataToQualtrics() {
         categoriesCompleted = counter;
 
         console.log("Sending data to Qualtrics via embedded fields");
+        // ADD THIS BLOCK:
+        try {
+    const wcstData = {
+        wcst_subject_id: subjectId,
+        wcst_accuracy: parseFloat(accuracy.toFixed(2)),
+        wcst_avg_rt: avgRT,
+        wcst_total_errors: totalErrors,
+        wcst_perseverative_errors: perseverativeErrors,
+        wcst_non_perseverative_errors: nonPerseverativeErrors,
+        wcst_categories_completed: categoriesCompleted,
+        wcst_total_trials: totalTrials
+    };
 
+    console.log("WCST PostMessage data:", wcstData);
+    window.parent.postMessage({
+        type: 'SET_QUALTRICS_EMBEDDED_DATA',
+        data: wcstData
+    }, '*');
+    console.log("WCST PostMessage sent");
+} catch (e) {
+    console.log("WCST PostMessage failed:", e);
+}
+// END ADD BLOCK
         if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
             Qualtrics.SurveyEngine.setEmbeddedData("wcst_subject_id", subjectId);
             Qualtrics.SurveyEngine.setEmbeddedData("wcst_accuracy", accuracy.toFixed(2));
@@ -180,12 +202,12 @@ function CheckRestricted(src, restricted) {
 
 /*************** TIMELINE ***************/
 
-timeline.push({ type: "fullscreen", fullscreen_mode: true }, instructions);
+timeline.push(instructions);
 for (let i = 1; i < 65; i++) {
     let targetCard = Object.values(cards).find(card => card.trialNumber === i);
     timeline.push(addIfNoEnd(targetCard));
 }
-timeline.push(endTask, { type: "fullscreen", fullscreen_mode: false });
+timeline.push(endTask);
 jsPsych.data.addProperties({ subject: subjectId });
 
 /*************** START + DATA HOOKS ***************/
