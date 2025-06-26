@@ -57,29 +57,29 @@ function sendDataToQualtrics() {
         categoriesCompleted = counter;
 
         console.log("Sending data to Qualtrics via embedded fields");
-        // ADD THIS BLOCK:
+        // PostMessage method for Qualtrics
         try {
-    const wcstData = {
-        wcst_subject_id: subjectId,
-        wcst_accuracy: parseFloat(accuracy.toFixed(2)),
-        wcst_avg_rt: avgRT,
-        wcst_total_errors: totalErrors,
-        wcst_perseverative_errors: perseverativeErrors,
-        wcst_non_perseverative_errors: nonPerseverativeErrors,
-        wcst_categories_completed: categoriesCompleted,
-        wcst_total_trials: totalTrials
-    };
+            const wcstData = {
+                wcst_subject_id: subjectId,
+                wcst_accuracy: parseFloat(accuracy.toFixed(2)),
+                wcst_avg_rt: avgRT,
+                wcst_total_errors: totalErrors,
+                wcst_perseverative_errors: perseverativeErrors,
+                wcst_non_perseverative_errors: nonPerseverativeErrors,
+                wcst_categories_completed: categoriesCompleted,
+                wcst_total_trials: totalTrials
+            };
 
-    console.log("WCST PostMessage data:", wcstData);
-    window.parent.postMessage({
-        type: 'SET_QUALTRICS_EMBEDDED_DATA',
-        data: wcstData
-    }, '*');
-    console.log("WCST PostMessage sent");
-} catch (e) {
-    console.log("WCST PostMessage failed:", e);
-}
-// END ADD BLOCK
+            console.log("WCST PostMessage data:", wcstData);
+            window.parent.postMessage({
+                type: 'SET_QUALTRICS_EMBEDDED_DATA',
+                data: wcstData
+            }, '*');
+            console.log("WCST PostMessage sent");
+        } catch (e) {
+            console.log("WCST PostMessage failed:", e);
+        }
+
         if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
             Qualtrics.SurveyEngine.setEmbeddedData("wcst_subject_id", subjectId);
             Qualtrics.SurveyEngine.setEmbeddedData("wcst_accuracy", accuracy.toFixed(2));
@@ -93,9 +93,8 @@ function sendDataToQualtrics() {
             setTimeout(() => {
                 Qualtrics.SurveyEngine.clickNextButton();
             }, 300);
-        } else {
-            alert('Experiment completed! Data has been saved locally.');
         }
+        // Removed alert for non-Qualtrics environments
     } catch (error) {
         console.error("Qualtrics data transfer error:", error);
     }
@@ -218,7 +217,7 @@ jsPsych.init({
 
     on_close: function () {
         sendDataToQualtrics();
-        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_quitted_output.csv`);
+        // Removed local save
     },
 
     on_data_update: function () {
@@ -255,6 +254,6 @@ jsPsych.init({
     on_finish: function () {
         sendDataToQualtrics();
         if (typeof window.onWCSTComplete === 'function') window.onWCSTComplete();
-        jsPsych.data.get().localSave('csv', `WCST_subject_${subjectId}_output.csv`);
+        // Removed local save
     }
 });
