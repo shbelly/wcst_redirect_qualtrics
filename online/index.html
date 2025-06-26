@@ -66,10 +66,8 @@
                     
                     // Auto-advance or show completion message
                     completeQualtricsExperiment();
-                } else {
-                    // Not in Qualtrics, show completion message
-                    alert('Experiment completed! Data has been saved.');
                 }
+                // Removed alert for non-Qualtrics environments
             };
         </script>
     </head>
