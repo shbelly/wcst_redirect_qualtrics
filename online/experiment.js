@@ -57,7 +57,21 @@ function sendDataToQualtrics() {
         categoriesCompleted = counter;
 
         console.log("Sending data to Qualtrics via embedded fields");
-        // PostMessage method for Qualtrics
+        
+        // Method 1: Direct Qualtrics API
+        if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
+            console.log("Method 1: Direct Qualtrics API");
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_subject_id", subjectId);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_accuracy", accuracy.toFixed(2));
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_avg_rt", avgRT);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_errors", totalErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_perseverative_errors", perseverativeErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_non_perseverative_errors", nonPerseverativeErrors);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_categories_completed", categoriesCompleted);
+            Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_trials", totalTrials);
+        }
+
+        // Method 2: PostMessage to parent
         try {
             const wcstData = {
                 wcst_subject_id: subjectId,
@@ -70,31 +84,52 @@ function sendDataToQualtrics() {
                 wcst_total_trials: totalTrials
             };
 
-            console.log("WCST PostMessage data:", wcstData);
             window.parent.postMessage({
                 type: 'SET_QUALTRICS_EMBEDDED_DATA',
                 data: wcstData
             }, '*');
-            console.log("WCST PostMessage sent");
+            console.log("WCST PostMessage sent to parent");
         } catch (e) {
             console.log("WCST PostMessage failed:", e);
         }
 
-        if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_subject_id", subjectId);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_accuracy", accuracy.toFixed(2));
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_avg_rt", avgRT);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_errors", totalErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_perseverative_errors", perseverativeErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_non_perseverative_errors", nonPerseverativeErrors);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_categories_completed", categoriesCompleted);
-            Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_trials", totalTrials);
-
-            setTimeout(() => {
-                Qualtrics.SurveyEngine.clickNextButton();
-            }, 300);
+        // Method 3: Parent Qualtrics access
+        try {
+            if (window.parent?.Qualtrics?.SurveyEngine) {
+                console.log("Method 3: Parent Qualtrics API");
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_subject_id", subjectId);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_accuracy", accuracy.toFixed(2));
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_avg_rt", avgRT);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_errors", totalErrors);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_perseverative_errors", perseverativeErrors);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_non_perseverative_errors", nonPerseverativeErrors);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_categories_completed", categoriesCompleted);
+                window.parent.Qualtrics.SurveyEngine.setEmbeddedData("wcst_total_trials", totalTrials);
+            }
+        } catch (e) {
+            console.log("Parent Qualtrics access failed:", e);
         }
-        // Removed alert for non-Qualtrics environments
+
+        // Method 4: Store in window
+        try {
+            window.wcstExperimentResults = {
+                subject_id: subjectId,
+                accuracy: accuracy.toFixed(2),
+                avg_rt: avgRT,
+                total_errors: totalErrors,
+                perseverative_errors: perseverativeErrors,
+                non_perseverative_errors: nonPerseverativeErrors,
+                categories_completed: categoriesCompleted,
+                total_trials: totalTrials
+            };
+            window.parent.wcstExperimentResults = window.wcstExperimentResults;
+            console.log("Method 4: Stored in window objects");
+        } catch (e) {
+            console.log("Window storage failed:", e);
+        }
+
+        console.log("=== ALL WCST DATA METHODS ATTEMPTED ===");
+
     } catch (error) {
         console.error("Qualtrics data transfer error:", error);
     }
@@ -217,6 +252,13 @@ jsPsych.init({
 
     on_close: function () {
         sendDataToQualtrics();
+        // Send completion signal to parent (Qualtrics)
+        try {
+            window.parent.postMessage({type: 'WCST_COMPLETE'}, '*');
+            console.log("WCST_COMPLETE message sent to parent");
+        } catch (e) {
+            console.log("Failed to send WCST completion message:", e);
+        }
         // Removed local save
     },
 
@@ -253,6 +295,15 @@ jsPsych.init({
 
     on_finish: function () {
         sendDataToQualtrics();
+        
+        // Send completion signal to parent (Qualtrics) - separate from data transfer
+        try {
+            window.parent.postMessage({type: 'WCST_COMPLETE'}, '*');
+            console.log("WCST_COMPLETE message sent to parent");
+        } catch (e) {
+            console.log("Failed to send WCST completion message:", e);
+        }
+        
         if (typeof window.onWCSTComplete === 'function') window.onWCSTComplete();
         // Removed local save
     }
